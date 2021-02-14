@@ -1,0 +1,27 @@
+{
+	"scripts": {
+		"start": "webpack --mode production && live-server dist",
+		"dev": "webpack serve --mode development --open"
+	},
+	"dependencies": {
+		"animation-loop": "^1.4.0",
+		"react": "^17.0.1",
+		"react-dom": "^17.0.1",
+		"react-three-fiber": "^5.3.18",
+		"three": "^0.122.0"
+	},
+	"devDependencies": {
+		"@babel/preset-react": "^7.12.10",
+		"@types/react": "^17.0.0",
+		"@types/react-dom": "^17.0.0",
+		"babel-loader": "^8.2.2",
+		"html-webpack-plugin": "^4.5.1",
+		"live-server": "^1.2.1",
+		"source-map-loader": "^2.0.0",
+		"ts-loader": "^8.0.14",
+		"url-loader": "^4.1.1",
+		"webpack": "^5.21.2",
+		"webpack-cli": "^4.5.0",
+		"webpack-dev-server": "^3.11.2"
+	}
+}
