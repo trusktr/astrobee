@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {Component, useState, useEffect, createRef, Suspense, CSSProperties} from 'react'
+import {Component, useState, useEffect, createRef, Suspense, CSSProperties, FormEvent} from 'react'
 import {render} from 'react-dom'
 import {Canvas, useFrame, useThree, useLoader, SharedCanvasContext} from 'react-three-fiber'
 import {ColladaLoader} from 'three/examples/jsm/loaders/ColladaLoader'
@@ -10,9 +10,15 @@ import pmcModelUrl from './models/pmc.dae'
 import pmcSkinModelUrl from './models/pmc_skin_.dae'
 import pmcBumperModelUrl from './models/pmc_bumper.dae'
 
+import type {Object3DNode} from 'react-three-fiber'
+import type {Object3D, PerspectiveCamera} from 'three'
+
+type View = 'top' | 'side'
+
 interface State {
 	rotationDirection: number
 	rotationEnabled: boolean
+	view: View
 }
 
 // Long live class components!
@@ -20,21 +26,27 @@ class App extends Component<{}, State> {
 	state = {
 		rotationDirection: -1, // clockwise
 		rotationEnabled: true,
-	}
+		view: 'side',
+	} as State
 
 	private astrobee = createRef<Object3D>()
+	private cam = createRef<PerspectiveCamera>()
 
 	render = () => (
 		<>
 			<Canvas
 				pixelRatio={window.devicePixelRatio}
 				invalidateFrameloop={true} // use our own render loops
-				camera={{position: [0, 0, 1], fov: 45}}
+				// camera={{position: [0, 0, 1], fov: 45, lookAt: [0, 0, 0]}}
 			>
 				<WithThreeInternals render={this.onThreeReady} />
 
 				<pointLight intensity={0.8} color="white" position={[20, 20, 20]} />
 				<ambientLight intensity={0.4} color="white" />
+
+				<object3D rotation={[this.state.view === 'top' ? -Math.PI / 2 : 0, 0, 0]}>
+					<perspectiveCamera ref={this.cam} position={[0, 0, 1]} fov={45} />
+				</object3D>
 
 				<Suspense fallback={<></>}>
 					<object3D ref={this.astrobee}>
@@ -63,26 +75,47 @@ class App extends Component<{}, State> {
 			</Canvas>
 
 			<div style={styles.ui}>
-				<label>
-					<input type="checkbox" checked={this.state.rotationEnabled} onChange={this.toggleRotation} /> Enable
-					rotation.
-				</label>
-				<br />
-				<label>
-					<input
-						type="checkbox"
-						checked={this.state.rotationDirection < 0}
-						onChange={this.toggleRotationDirection}
-					/>{' '}
-					Clockwise rotation.
-				</label>
+				<fieldset>
+					<legend>Rotation</legend>
+					<label>
+						<input type="checkbox" checked={this.state.rotationEnabled} onChange={this.toggleRotation} />{' '}
+						Enable rotation.
+					</label>
+					<br />
+					<label>
+						<input
+							type="checkbox"
+							checked={this.state.rotationDirection < 0}
+							onChange={this.toggleRotationDirection}
+						/>{' '}
+						Clockwise rotation.
+					</label>
+				</fieldset>
+				<fieldset>
+					<legend>View</legend>
+					<label>
+						<input
+							type="radio"
+							name="side"
+							checked={this.state.view === 'side'}
+							onChange={this.changeView}
+						/>{' '}
+						Side view.
+					</label>
+					<br />
+					<label>
+						<input type="radio" name="top" checked={this.state.view === 'top'} onChange={this.changeView} />{' '}
+						Top view
+					</label>
+				</fieldset>
 			</div>
 		</>
 	)
 
 	private three: SharedCanvasContext | null = null
 
-	// Our own animation loop so we can control it and save CPU when possible.
+	// Our own animation loop so we can control it and save CPU when there is
+	// no rendering to perform.
 	private loop = new AnimationLoop()
 
 	private rotationY = 0
@@ -92,9 +125,11 @@ class App extends Component<{}, State> {
 
 		this.setState({rotationEnabled})
 
-		// If the `loop` has animation functions, then the loop will have
-		// repeated animation frames. When the `loop` instance has no animation
-		// functions, no animation frames fire, thus no CPU is wasted.
+		// If the `loop` instance has animation functions, then the loop will
+		// have repeated animation frames for calling the animation functions.
+		// If the `loop` instance has no animation functions (they've all been
+		// removed or have completed), no animation frames fire thus no CPU is
+		// wasted.
 		if (rotationEnabled) this.loop.addAnimationFn(this.rotateAstrobee)
 		else this.loop.removeAnimationFn(this.rotateAstrobee)
 	}
@@ -110,7 +145,10 @@ class App extends Component<{}, State> {
 		if (this.three) return null
 		this.three = three
 
-		const {gl: renderer, camera, scene} = this.three!
+		const {gl: renderer, scene, setDefaultCamera} = this.three!
+		const camera = this.cam.current!
+
+		this.three.setDefaultCamera(camera)
 
 		// A base function runs after any animation frame, if any. Existence of
 		// a base function does not cause animation frames.
@@ -125,6 +163,12 @@ class App extends Component<{}, State> {
 		this.loop.start()
 
 		return null
+	}
+
+	private changeView = (event: FormEvent<HTMLInputElement>) => {
+		const input = event.target as HTMLInputElement
+
+		if (input.checked) this.setState({view: input.name as View})
 	}
 }
 
@@ -168,9 +212,6 @@ function WithThreeInternals({render, onAnimationFrame}: WithThreeInternalsProps)
 }
 
 render(<App />, document.getElementById('root'))
-
-import type {Object3DNode} from 'react-three-fiber'
-import type {Object3D} from 'three'
 
 declare global {
 	namespace JSX {
