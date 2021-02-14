@@ -12,7 +12,7 @@
   </asset>
   <library_images>
     <image id="skin_debug_right_png" name="skin_debug_right_png">
-      <init_from>../media/materials/textures/skin_default.png</init_from>
+      <init_from>../materials/skin_default.png</init_from>
     </image>
   </library_images>
   <library_effects>

@@ -1,5 +1,6 @@
 const path = require('path')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const HtmlPlugin = require('html-webpack-plugin')
+const CopyPlugin = require('copy-webpack-plugin')
 
 const outputPath = 'dist'
 
@@ -40,14 +41,16 @@ module.exports = {
 			 * Assets
 			 * The 'limit: -1' causes all assets to be external (thus cacheable by the browser)
 			 */
-			// {test: /\.(jpg|svg|png)$/, exclude: [], use: [{loader: 'url-loader', options: {limit: -1}}]},
+			{
+				test: /\.dae$/,
+				exclude: [],
+				use: [{loader: 'url-loader', options: {limit: -1, name: '[path][name].[hash].[ext]'}}],
+			},
 		],
 	},
 	plugins: [
 		// Copies index.html to dist (in dev mode with dev server copies it to memory instead)
-		new HtmlWebpackPlugin({
-			template: './src/index.html',
-			hash: true,
-		}),
+		new HtmlPlugin({template: './src/index.html', hash: true}),
+		new CopyPlugin({patterns: [{from: 'src/materials/*.png', to: './'}]}),
 	],
 }
