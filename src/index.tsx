@@ -10,21 +10,22 @@ import pmcModelUrl from './models/pmc.dae'
 import pmcSkinModelUrl from './models/pmc_skin_.dae'
 import pmcBumperModelUrl from './models/pmc_bumper.dae'
 
+interface State {
+	rotationDirection: number
+	rotationEnabled: boolean
+}
+
 // Long live class components!
+class App extends Component<{}, State> {
+	state = {
+		rotationDirection: -1, // clockwise
+		rotationEnabled: true,
+	}
 
-class App extends Component {
-	private three: SharedCanvasContext | null = null
-
-	astrobee = createRef<Object3D>()
+	private astrobee = createRef<Object3D>()
 
 	render = () => (
 		<>
-			<div style={styles.ui}>
-				<label>
-					<input type="checkbox" checked /> Clockwise rotation.
-				</label>
-			</div>
-
 			<Canvas
 				pixelRatio={window.devicePixelRatio}
 				invalidateFrameloop={true} // use our own render loops
@@ -60,33 +61,66 @@ class App extends Component {
 					</object3D>
 				</Suspense>
 			</Canvas>
+
+			<div style={styles.ui}>
+				<label>
+					<input type="checkbox" checked={this.state.rotationEnabled} onChange={this.toggleRotation} /> Enable
+					rotation.
+				</label>
+				<br />
+				<label>
+					<input
+						type="checkbox"
+						checked={this.state.rotationDirection < 0}
+						onChange={this.toggleRotationDirection}
+					/>{' '}
+					Clockwise rotation.
+				</label>
+			</div>
 		</>
 	)
 
-	// Our own animation loop so we can control it and save CPU when possible.
-	loop = new AnimationLoop()
-	rotationDirection = -1 // clockwise
-	rotationY = 0
+	private three: SharedCanvasContext | null = null
 
-	onThreeReady = (three: SharedCanvasContext): null => {
+	// Our own animation loop so we can control it and save CPU when possible.
+	private loop = new AnimationLoop()
+
+	private rotationY = 0
+
+	private toggleRotation = () => {
+		const rotationEnabled = !this.state.rotationEnabled
+
+		this.setState({rotationEnabled})
+
+		// If the `loop` has animation functions, then the loop will have
+		// repeated animation frames. When the `loop` instance has no animation
+		// functions, no animation frames fire, thus no CPU is wasted.
+		if (rotationEnabled) this.loop.addAnimationFn(this.rotateAstrobee)
+		else this.loop.removeAnimationFn(this.rotateAstrobee)
+	}
+
+	private rotateAstrobee = () => {
+		this.rotationY += 0.005 * this.state.rotationDirection
+		this.astrobee.current!.rotation.y = this.rotationY
+	}
+
+	private toggleRotationDirection = () => this.setState({rotationDirection: this.state.rotationDirection * -1})
+
+	private onThreeReady = (three: SharedCanvasContext): null => {
 		if (this.three) return null
 		this.three = three
 
 		const {gl: renderer, camera, scene} = this.three!
 
+		// A base function runs after any animation frame, if any. Existence of
+		// a base function does not cause animation frames.
 		this.loop.addBaseFn(() => {
 			// If we control our own loop, we need to manually render the Three scene.
 			renderer.render(scene, camera)
 		})
 
-		this.loop.addAnimationFn(() => {
-			this.rotationY += 0.005 * this.rotationDirection
-
-			this.astrobee.current!.rotation.y = this.rotationY
-
-			// Stop this loop after a while (no more CPU usage)
-			if (this.rotationY > 10) return false
-		})
+		// start initial rotation
+		this.loop.addAnimationFn(this.rotateAstrobee)
 
 		this.loop.start()
 
@@ -94,12 +128,14 @@ class App extends Component {
 	}
 }
 
-const styles: Record<string, CSSProperties> = {
+const styles = {
 	ui: {
 		position: 'absolute',
 		color: 'white',
 		padding: 15,
-	},
+		top: 0,
+		left: 0,
+	} as CSSProperties,
 }
 
 function ColladaModel({url}: {url: string}) {
