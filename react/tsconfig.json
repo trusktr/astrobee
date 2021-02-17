@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"rootDir": "./",
+		"strict": true,
+		"jsx": "preserve",
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true
+	},
+	"include": ["./src/**/*"]
+}
