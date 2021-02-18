@@ -147,7 +147,6 @@ export class App extends Element {
         }
         fieldset:nth-child(2) {
             border-color: #c595c9;
-            border-radius: 4px;
         }
 	`
 
